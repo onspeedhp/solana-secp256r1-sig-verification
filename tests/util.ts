@@ -81,7 +81,6 @@ function subtractBigNumbers(a: Uint8Array, b: Uint8Array): Uint8Array {
 }
 
 export function createSecp256r1Instruction(
-  signingKey: any,
   message: Uint8Array,
   pubkey: Buffer<ArrayBuffer>,
   signature: Buffer<ArrayBuffer>
@@ -159,13 +158,4 @@ export function createSecp256r1Instruction(
   } catch (error) {
     throw new Error(`Failed to create secp256r1 instruction: ${error}`);
   }
-}
-
-export function base64ToUint8Array(base64: string): Uint8Array {
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
 }

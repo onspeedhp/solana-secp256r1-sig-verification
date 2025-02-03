@@ -4,7 +4,6 @@ import { Contract } from '../target/types/contract';
 import ECDSA from 'ecdsa-secp256r1';
 import { createSecp256r1Instruction } from './util';
 import { Keypair, SystemProgram, Transaction } from '@solana/web3.js';
-import { publicKey } from '@coral-xyz/anchor/dist/cjs/utils';
 import dotenv from 'dotenv';
 import bs58 from 'bs58';
 dotenv.config();
@@ -35,13 +34,12 @@ describe('contract', () => {
     const instructionData = createSecp256r1Instruction(
       privateKey,
       messageBytes,
-      pubkey,
-      signature
+      pubkey
     );
 
     const transferSOLInstruction = SystemProgram.transfer({
       fromPubkey: wallet.publicKey,
-      toPubkey: Keypair.generate().publicKey, 
+      toPubkey: Keypair.generate().publicKey,
       lamports: 1000000,
     });
 
