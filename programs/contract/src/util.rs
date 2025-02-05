@@ -1,4 +1,4 @@
-use crate::error::ErrorCode;
+use crate::error::{ContractError};
 use anchor_lang::{prelude::*, solana_program::instruction::Instruction};
 
 const SECP256R1_ID: Pubkey = pubkey!("Secp256r1SigVerify1111111111111111111111111");
@@ -9,7 +9,7 @@ pub fn verify_secp256r1_ix(ix: &Instruction, pubkey: &[u8], msg: &[u8], sig: &[u
         ix.data.len()       != (2 + 14 + 33 + 64 + msg.len())
     // And data of this size
     {
-        return Err(ErrorCode::SigVerificationFailed.into()); // Otherwise, we can already throw err
+        return Err(ContractError::SigVerificationFailed.into()); // Otherwise, we can already throw err
     }
 
     check_secp256r1_data(&ix.data, pubkey, msg, sig)?; // If that's not the case, check data
@@ -17,7 +17,7 @@ pub fn verify_secp256r1_ix(ix: &Instruction, pubkey: &[u8], msg: &[u8], sig: &[u
     Ok(())
 }
 
-pub fn check_secp256r1_data(data: &[u8], pubkey: &[u8], msg: &[u8], sig: &[u8]) -> Result<()> {
+fn check_secp256r1_data(data: &[u8], pubkey: &[u8], msg: &[u8], sig: &[u8]) -> Result<()> {
     // Parse header components
     let num_signatures = &[data[0]]; // Byte 0
     let signature_offset = &data[2..=3]; // Bytes 2-3
@@ -54,11 +54,11 @@ pub fn check_secp256r1_data(data: &[u8], pubkey: &[u8], msg: &[u8], sig: &[u8]) 
         || message_data_size != &msg_len.to_le_bytes()
         || message_instruction_index != &0xFFFFu16.to_le_bytes()
     {
-        return Err(ErrorCode::SigVerificationFailed.into());
+        return Err(ContractError::SigVerificationFailed.into());
     }
 
     if &data_pubkey[..] != &pubkey[..] || &data_sig[..] != &sig[..] || &data_msg[..] != &msg[..] {
-        return Err(ErrorCode::SigVerificationFailed.into());
+        return Err(ContractError::SigVerificationFailed.into());
     }
     Ok(())
 }
