@@ -2,8 +2,7 @@ import * as anchor from '@coral-xyz/anchor';
 import { Program } from '@coral-xyz/anchor';
 import { Contract } from '../target/types/contract';
 import ECDSA from 'ecdsa-secp256r1';
-import { createSecp256r1Instruction } from './util';
-import { Keypair, PublicKey, Transaction } from '@solana/web3.js';
+import { Keypair } from '@solana/web3.js';
 import dotenv from 'dotenv';
 import bs58 from 'bs58';
 import {
@@ -20,8 +19,6 @@ dotenv.config();
 describe('contract', () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
-
-  const program = anchor.workspace.Contract as Program<Contract>;
 
   const anchorProvider = anchor.getProvider() as anchor.AnchorProvider;
 
