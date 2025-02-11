@@ -8,4 +8,7 @@ pub enum ContractError {
 
     #[msg("Too many public keys.")]
     TooManyPubkey,
+
+    #[msg("Invalid pubkey.")]
+    InvalidPubkey,
 }

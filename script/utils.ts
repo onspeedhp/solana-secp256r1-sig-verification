@@ -160,7 +160,6 @@ export function createSecp256r1Instruction(
   }
 }
 
-// write function to generate random number between 0 and u64::MAX
-export function generateRandomNumber(): number {
+export function getID(): number {
   return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
 }

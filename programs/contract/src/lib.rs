@@ -14,7 +14,11 @@ pub mod contract {
     use super::*;
 
     // Initialize the smart wallet
-    pub fn init_smart_wallet(ctx: Context<InitSmartWallet>, pubkey: [u8; 33], id: u64) -> Result<()> {
+    pub fn init_smart_wallet(
+        ctx: Context<InitSmartWallet>,
+        pubkey: [u8; 33],
+        id: u64,
+    ) -> Result<()> {
         instructions::init_smart_wallet(ctx, pubkey, id)
     }
 

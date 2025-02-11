@@ -3,13 +3,7 @@ import { Program } from '@coral-xyz/anchor';
 import { Contract } from '../target/types/contract';
 import ECDSA from 'ecdsa-secp256r1';
 import { createSecp256r1Instruction } from './util';
-import {
-  Keypair,
-  LAMPORTS_PER_SOL,
-  PublicKey,
-  SystemProgram,
-  Transaction,
-} from '@solana/web3.js';
+import { Keypair, PublicKey, Transaction } from '@solana/web3.js';
 import dotenv from 'dotenv';
 import bs58 from 'bs58';
 import {
@@ -18,6 +12,9 @@ import {
   getOrCreateAssociatedTokenAccount,
   mintTo,
 } from '@solana/spl-token';
+import { createInitSmartWalletTransaction } from '../script/api/init';
+import { getSmartWalletPdaByCreator } from '../script/api/getSmartWalletPda';
+import { createVerifyAndExecuteTransaction } from '../script/api/verifyAndExecute';
 dotenv.config();
 
 describe('contract', () => {
@@ -30,28 +27,42 @@ describe('contract', () => {
 
   const wallet = Keypair.fromSecretKey(bs58.decode(process.env.PRIVATE_KEY!));
 
-  it('Init smart-wallet', async () => {
+  xit('Init smart-wallet', async () => {
     const privateKey = ECDSA.generateKey();
 
     const publicKeyBase64 = privateKey.toCompressedPublicKey();
-    const pubkey = Array.from(Buffer.from(publicKeyBase64, 'base64'));
-    const tx = await program.methods
-      .initSmartWallet(pubkey)
-      .accounts({
-        signer: wallet.publicKey,
-      })
-      .rpc();
 
-    console.log('Init smart-wallet', tx);
+    const pubkey = Array.from(Buffer.from(publicKeyBase64, 'base64'));
+
+    const txn = await createInitSmartWalletTransaction({
+      secp256k1PubkeyBytes: pubkey,
+      connection: anchorProvider.connection,
+      payer: wallet.publicKey,
+    });
+
+    const sig = await anchorProvider.sendAndConfirm(txn, [wallet]);
+
+    console.log('Init smart-wallet', sig);
   });
 
   it('Verify and execute transfer token instruction', async () => {
-    const [smartWalletPda] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from('smart_wallet'),
-        new anchor.BN(0).toArrayLike(Buffer, 'le', 8),
-      ],
-      program.programId
+    // create smart wallet
+    const privateKey = ECDSA.generateKey();
+    const publicKeyBase64 = privateKey.toCompressedPublicKey();
+    const pubkey = Buffer.from(publicKeyBase64, 'base64');
+
+    await anchorProvider.sendAndConfirm(
+      await createInitSmartWalletTransaction({
+        secp256k1PubkeyBytes: Array.from(pubkey),
+        connection: anchorProvider.connection,
+        payer: wallet.publicKey,
+      }),
+      [wallet]
+    );
+
+    const smartWalletPubkey = await getSmartWalletPdaByCreator(
+      anchorProvider.connection,
+      Array.from(pubkey)
     );
 
     /// create mint
@@ -68,7 +79,7 @@ describe('contract', () => {
       anchorProvider.connection,
       wallet,
       mint,
-      smartWalletPda,
+      smartWalletPubkey,
       true
     );
 
@@ -95,72 +106,31 @@ describe('contract', () => {
       smartWalletAta.address,
       mint,
       walletAta.address,
-      smartWalletPda,
+      smartWalletPubkey,
       10 * 10 ** 6,
       6
     );
-
-    const privateKey = ECDSA.generateKey();
 
     const message = 'Hello';
 
     const messageBytes = Buffer.from(message);
 
-    const publicKeyBase64 = privateKey.toCompressedPublicKey();
-    const pubkey = Buffer.from(publicKeyBase64, 'base64');
-
     const signatureBase64 = privateKey.sign(Buffer.from(message).toString());
+
     let signature = Buffer.from(signatureBase64, 'base64');
 
-    const instructionData = createSecp256r1Instruction(
-      messageBytes,
-      pubkey,
-      signature
-    );
-
-    // find signer and set isSigner to false
-    let remainingAccounts = transferTokenInstruction.keys.map((key) => {
-      return {
-        pubkey: key.pubkey,
-        isSigner: false,
-        isWritable: key.isWritable,
-      };
+    const txn = await createVerifyAndExecuteTransaction({
+      arbitraryInstruction: transferTokenInstruction,
+      pubkey: pubkey,
+      signature: signature,
+      message: messageBytes,
+      connection: anchorProvider.connection,
+      payer: wallet.publicKey,
+      smartWalletPda: smartWalletPubkey,
     });
 
-    remainingAccounts.push({
-      pubkey: transferTokenInstruction.programId,
-      isSigner: false,
-      isWritable: false,
-    });
+    const sig = await anchorProvider.sendAndConfirm(txn, [wallet]);
 
-    const tx = new Transaction().add(instructionData).add(
-      await program.methods
-        .verifyAndExecuteInstruction(
-          Array.from(pubkey),
-          messageBytes,
-          Array.from(signature),
-          transferTokenInstruction.programId,
-          transferTokenInstruction.data
-        )
-        .accounts({
-          signer: wallet.publicKey,
-        })
-        .remainingAccounts(remainingAccounts)
-        .instruction()
-    );
-
-    tx.recentBlockhash = (
-      await anchorProvider.connection.getLatestBlockhash()
-    ).blockhash;
-
-    tx.feePayer = wallet.publicKey;
-
-    tx.partialSign(wallet);
-
-    const sig = await anchorProvider.connection.sendTransaction(tx, [wallet], {
-      skipPreflight: true,
-    });
-
-    console.log(sig);
+    console.log('Verify and execute transfer token instruction', sig);
   });
 });
