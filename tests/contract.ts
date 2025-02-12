@@ -126,7 +126,9 @@ describe('contract', () => {
       smartWalletPda: smartWalletPubkey,
     });
 
-    const sig = await anchorProvider.sendAndConfirm(txn, [wallet]);
+    const sig = await anchorProvider.sendAndConfirm(txn, [wallet], {
+      skipPreflight: true,
+    });
 
     console.log('Verify and execute transfer token instruction', sig);
   });

@@ -63,9 +63,6 @@ pub fn verify_and_execute_instruction<'info>(
 
 #[derive(Accounts)]
 pub struct Verify<'info> {
-    #[account(mut)]
-    pub signer: Signer<'info>,
-
     /// CHECK: The address check is needed because otherwise
     /// the supplied Sysvar could be anything else.
     /// The Instruction Sysvar has not been implemented

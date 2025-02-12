@@ -68,7 +68,6 @@ export async function createVerifyAndExecuteTransaction(
         arbitraryInstruction.data
       )
       .accounts({
-        signer: payer,
         smartWallet: smartWalletPda,
       })
       .remainingAccounts(remainingAccounts)
