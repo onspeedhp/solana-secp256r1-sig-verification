@@ -16,13 +16,13 @@ pub fn verify_and_execute_instruction<'info>(
     pubkey: [u8; 33],
     msg: Vec<u8>,
     sig: [u8; 64],
-    program_id: Pubkey,
     data: Vec<u8>,
 ) -> Result<()> {
     let smart_wallet = &ctx.accounts.smart_wallet;
+    let cpi_program_key = &ctx.accounts.cpi_program;
 
     // Get what should be the Secp256k1Program instruction
-    let ix: Instruction = load_instruction_at_checked(0, &ctx.accounts.ix_sysvar)?;
+    let ix: Instruction = load_instruction_at_checked(1, &ctx.accounts.ix_sysvar)?;
 
     // Check that ix is what we expect to have been sent
     verify_secp256r1_ix(&ix, &pubkey, &msg, &sig)?;
@@ -50,7 +50,7 @@ pub fn verify_and_execute_instruction<'info>(
 
     // Create instruction
     let instruction = Instruction {
-        program_id,
+        program_id: cpi_program_key.key(),
         accounts,
         data,
     };
@@ -75,4 +75,7 @@ pub struct Verify<'info> {
         owner = ID
     )]
     pub smart_wallet: Account<'info, SmartWallet>,
+
+    /// CHECK:
+    pub cpi_program: AccountInfo<'info>,
 }

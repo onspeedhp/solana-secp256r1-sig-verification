@@ -28,9 +28,8 @@ pub mod contract {
         pubkey: [u8; 33],
         msg: Vec<u8>,
         sig: [u8; 64],
-        program_id: Pubkey,
         data: Vec<u8>,
     ) -> Result<()> {
-        instructions::verify_and_execute_instruction(ctx, pubkey, msg, sig, program_id, data)
+        instructions::verify_and_execute_instruction(ctx, pubkey, msg, sig, data)
     }
 }

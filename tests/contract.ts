@@ -5,15 +5,10 @@ import ECDSA from 'ecdsa-secp256r1';
 import { Keypair } from '@solana/web3.js';
 import dotenv from 'dotenv';
 import bs58 from 'bs58';
-import {
-  createMint,
-  createTransferCheckedInstruction,
-  getOrCreateAssociatedTokenAccount,
-  mintTo,
-} from '@solana/spl-token';
 import { createInitSmartWalletTransaction } from '../script/api/init';
 import { getSmartWalletPdaByCreator } from '../script/api/getSmartWalletPda';
 import { createVerifyAndExecuteTransaction } from '../script/api/verifyAndExecute';
+import { setup } from './raydium-swap/swap';
 dotenv.config();
 
 describe('contract', () => {
@@ -62,51 +57,13 @@ describe('contract', () => {
       Array.from(pubkey)
     );
 
-    /// create mint
-    const mint = await createMint(
-      anchorProvider.connection,
-      wallet,
-      wallet.publicKey,
-      wallet.publicKey,
-      6
-    );
+    console.log('Smart wallet pubkey', smartWalletPubkey.toBase58());
 
-    // create ata for smart wallet
-    const smartWalletAta = await getOrCreateAssociatedTokenAccount(
-      anchorProvider.connection,
-      wallet,
-      mint,
+    const swapIns = await setup({
       smartWalletPubkey,
-      true
-    );
-
-    // mint to smart wallet
-    mintTo(
-      anchorProvider.connection,
       wallet,
-      mint,
-      smartWalletAta.address,
-      wallet.publicKey,
-      10 * 10 ** 6
-    );
-
-    // create ata for wallet
-    const walletAta = await getOrCreateAssociatedTokenAccount(
-      anchorProvider.connection,
-      wallet,
-      mint,
-      wallet.publicKey,
-      false
-    );
-
-    const transferTokenInstruction = createTransferCheckedInstruction(
-      smartWalletAta.address,
-      mint,
-      walletAta.address,
-      smartWalletPubkey,
-      10 * 10 ** 6,
-      6
-    );
+      anchorProvider,
+    });
 
     const message = 'Hello';
 
@@ -117,7 +74,7 @@ describe('contract', () => {
     let signature = Buffer.from(signatureBase64, 'base64');
 
     const txn = await createVerifyAndExecuteTransaction({
-      arbitraryInstruction: transferTokenInstruction,
+      arbitraryInstruction: swapIns,
       pubkey: pubkey,
       signature: signature,
       message: messageBytes,
@@ -126,9 +83,14 @@ describe('contract', () => {
       smartWalletPda: smartWalletPubkey,
     });
 
-    const sig = await anchorProvider.sendAndConfirm(txn, [wallet], {
-      skipPreflight: true,
-    });
+    txn.partialSign(wallet);
+
+    const sig = await anchorProvider.connection.sendRawTransaction(
+      txn.serialize(),
+      {
+        skipPreflight: true,
+      }
+    );
 
     console.log('Verify and execute transfer token instruction', sig);
   });

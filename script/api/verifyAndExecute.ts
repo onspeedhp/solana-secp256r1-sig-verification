@@ -1,4 +1,5 @@
 import {
+  ComputeBudgetProgram,
   Connection,
   PublicKey,
   Transaction,
@@ -45,12 +46,18 @@ export async function createVerifyAndExecuteTransaction(
     };
   });
 
-  // add programId to remainingAccounts
-  remainingAccounts.push({
-    pubkey: arbitraryInstruction.programId,
-    isSigner: false,
-    isWritable: false,
-  });
+  // // check if the arbitraryInstruction.programId is not in the remainingAccounts
+  // if (
+  //   !remainingAccounts.find(
+  //     (account) =>
+  //       account.pubkey.toBase58() === arbitraryInstruction.programId.toBase58()
+  //   )
+  // )
+  //   remainingAccounts.push({
+  //     pubkey: arbitraryInstruction.programId,
+  //     isSigner: false,
+  //     isWritable: false,
+  //   });
 
   const verifySecp256r1Instruction = createSecp256r1Instruction(
     message,
@@ -58,21 +65,24 @@ export async function createVerifyAndExecuteTransaction(
     signature
   );
 
-  const txn = new Transaction().add(verifySecp256r1Instruction).add(
-    await program.methods
-      .verifyAndExecuteInstruction(
-        Array.from(pubkey),
-        message,
-        Array.from(signature),
-        arbitraryInstruction.programId,
-        arbitraryInstruction.data
-      )
-      .accounts({
-        smartWallet: smartWalletPda,
-      })
-      .remainingAccounts(remainingAccounts)
-      .instruction()
-  );
+  const txn = new Transaction()
+    .add(ComputeBudgetProgram.setComputeUnitLimit({ units: 200_000 }))
+    .add(verifySecp256r1Instruction)
+    .add(
+      await program.methods
+        .verifyAndExecuteInstruction(
+          Array.from(pubkey),
+          message,
+          Array.from(signature),
+          arbitraryInstruction.data
+        )
+        .accounts({
+          smartWallet: smartWalletPda,
+          cpiProgram: arbitraryInstruction.programId,
+        })
+        .remainingAccounts(remainingAccounts)
+        .instruction()
+    );
 
   txn.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
 
