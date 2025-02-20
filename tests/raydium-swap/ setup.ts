@@ -1,12 +1,10 @@
-import { Keypair, PublicKey } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
+import { OPENBOOK_MARKET, AMM_PROGRAM_ID, FEE_DESTINATION } from './config';
 import {
-  initSdk,
-  OPENBOOK_MARKET,
-  txVersion,
-  AMM_PROGRAM_ID,
-  FEE_DESTINATION,
-} from './config';
-import { MARKET_STATE_LAYOUT_V3, Raydium } from '@raydium-io/raydium-sdk-v2';
+  MARKET_STATE_LAYOUT_V3,
+  Raydium,
+  TxVersion,
+} from '@raydium-io/raydium-sdk-v2';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import BN from 'bn.js';
 
@@ -37,7 +35,7 @@ export const createMarket = async ({
     tickSize: 0.01,
     dexProgramId: OPENBOOK_MARKET,
     // dexProgramId: DEVNET_PROGRAM_ID.OPENBOOK_MARKET, // devnet
-    txVersion: txVersion,
+    txVersion: TxVersion.LEGACY,
     // requestQueueSpace: 5120 + 12, // optional
     // eventQueueSpace: 262144 + 12, // optional
     // orderbookQueueSpace: 65536 + 12, // optional
@@ -152,7 +150,7 @@ export const createAmmPool = async ({
       useSOLBalance: true,
     },
     associatedOnly: false,
-    txVersion,
+    txVersion: TxVersion.LEGACY,
     feeDestinationId: FEE_DESTINATION,
     // feeDestinationId: DEVNET_PROGRAM_ID.FEE_DESTINATION_ID, // devnet
     // optional: set up priority fee here

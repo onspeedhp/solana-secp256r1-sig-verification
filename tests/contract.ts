@@ -22,6 +22,8 @@ describe('contract', () => {
   xit('Init smart-wallet', async () => {
     const privateKey = ECDSA.generateKey();
 
+     
+
     const publicKeyBase64 = privateKey.toCompressedPublicKey();
 
     const pubkey = Array.from(Buffer.from(publicKeyBase64, 'base64'));
@@ -85,11 +87,11 @@ describe('contract', () => {
 
     txn.partialSign(wallet);
 
+    // sleep for 5 seconds
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+
     const sig = await anchorProvider.connection.sendRawTransaction(
-      txn.serialize(),
-      {
-        skipPreflight: true,
-      }
+      txn.serialize()
     );
 
     console.log('Verify and execute transfer token instruction', sig);

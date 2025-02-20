@@ -3,8 +3,9 @@ import {
   AmmV4Keys,
   AmmRpcData,
   parseTokenAccountResp,
+  TxVersion,
 } from '@raydium-io/raydium-sdk-v2';
-import { initSdk, txVersion } from './config';
+import { initSdk } from './config';
 import BN from 'bn.js';
 import Decimal from 'decimal.js';
 import { isValidAmm } from './util';
@@ -39,6 +40,8 @@ export const prepareSwapInstruction = async ({
 }): Promise<TransactionInstruction> => {
   const raydium = await initSdk({
     owner: creator,
+    connection,
+    cluster: 'devnet',
   });
 
   const amountIn = 1 * 10 ** 9;
@@ -58,7 +61,7 @@ export const prepareSwapInstruction = async ({
       connection,
     })
   );
-  
+
   connection.onAccountChange(smartWalletPubkey, async () => {
     raydium!.account.updateTokenAccount(
       await fetchTokenAccountData({
@@ -78,6 +81,7 @@ export const prepareSwapInstruction = async ({
     const data = await raydium.api.fetchPoolById({ ids: poolId });
 
     poolInfo = data[0] as ApiV3PoolInfoStandardItem;
+
     if (!isValidAmm(poolInfo.programId))
       throw new Error('target pool is not AMM pool');
     poolKeys = await raydium.liquidity.getAmmPoolKeys(poolId);
@@ -143,7 +147,7 @@ export const prepareSwapInstruction = async ({
     amountOut: out.minAmountOut, // out.amountOut means amount 'without' slippage
     fixedSide: 'in',
     inputMint: mintIn.address,
-    txVersion,
+    txVersion: TxVersion.LEGACY,
 
     // optional: set up token account
     // config: {
