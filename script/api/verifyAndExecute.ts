@@ -46,19 +46,6 @@ export async function createVerifyAndExecuteTransaction(
     };
   });
 
-  // // check if the arbitraryInstruction.programId is not in the remainingAccounts
-  // if (
-  //   !remainingAccounts.find(
-  //     (account) =>
-  //       account.pubkey.toBase58() === arbitraryInstruction.programId.toBase58()
-  //   )
-  // )
-  //   remainingAccounts.push({
-  //     pubkey: arbitraryInstruction.programId,
-  //     isSigner: false,
-  //     isWritable: false,
-  //   });
-
   const verifySecp256r1Instruction = createSecp256r1Instruction(
     message,
     pubkey,

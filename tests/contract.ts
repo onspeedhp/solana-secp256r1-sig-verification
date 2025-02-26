@@ -67,7 +67,7 @@ describe('contract', () => {
       anchorProvider,
     });
 
-    const message = 'Hello';
+    const message = `Hello mother fucker, it's me again`;
 
     const messageBytes = Buffer.from(message);
 

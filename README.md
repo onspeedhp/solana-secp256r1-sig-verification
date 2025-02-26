@@ -28,7 +28,8 @@ solana-test-validator --clone-upgradeable-program EoTcMgcDRTJVZDMZWBoU6rhYHZfkNT
 ### Deploy the smart-contracts
 
 ```bash
-anchor deploy
+anchor build && anchor deploy && anchor idl init -f ./target/idl/contract.json <program-id>
+
 ```
 
 ### Test the smart-contracts
