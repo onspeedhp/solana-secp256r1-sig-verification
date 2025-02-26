@@ -11,21 +11,43 @@ use anchor_lang::solana_program::{
 
 use super::SmartWallet;
 
+#[derive(Debug, AnchorSerialize, AnchorDeserialize)]
+pub struct Message {
+    pub nonce: u64,
+    pub timestamp: i64,
+}
+
 pub fn verify_and_execute_instruction<'info>(
     ctx: Context<Verify>,
     pubkey: [u8; 33],
-    msg: Vec<u8>,
+    msg: Message,
     sig: [u8; 64],
     data: Vec<u8>,
 ) -> Result<()> {
-    let smart_wallet = &ctx.accounts.smart_wallet;
+    let smart_wallet = &mut ctx.accounts.smart_wallet;
     let cpi_program_key = &ctx.accounts.cpi_program;
 
     // Get what should be the Secp256k1Program instruction
     let ix: Instruction = load_instruction_at_checked(1, &ctx.accounts.ix_sysvar)?;
 
     // Check that ix is what we expect to have been sent
-    verify_secp256r1_ix(&ix, &pubkey, &msg, &sig)?;
+    verify_secp256r1_ix(&ix, &pubkey, &msg.try_to_vec()?, &sig)?;
+
+    // check if timestamp is in the future
+    if msg.timestamp > Clock::get()?.unix_timestamp {
+        return Err(ContractError::InvalidTimestamp.into());
+    }
+
+    // check if timestamp is expired in 30 seconds
+    let clock = Clock::get()?;
+    if clock.unix_timestamp > msg.timestamp + 30 {
+        return Err(ContractError::SignatureExpired.into());
+    }
+
+    // check if nonce is the same
+    if msg.nonce != smart_wallet.nonce {
+        return Err(ContractError::InvalidNonce.into());
+    }
 
     // Check that pubkey is the creator of the smart wallet
     if pubkey != smart_wallet.creator {
@@ -57,6 +79,9 @@ pub fn verify_and_execute_instruction<'info>(
 
     // Execute the instruction
     invoke_signed(&instruction, &ctx.remaining_accounts, &[seeds_signer])?;
+
+    // Increment nonce
+    smart_wallet.nonce += 1;
 
     Ok(())
 }

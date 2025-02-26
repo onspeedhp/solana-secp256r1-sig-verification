@@ -11,4 +11,13 @@ pub enum ContractError {
 
     #[msg("Invalid pubkey.")]
     InvalidPubkey,
+
+    #[msg("Signature is expired.")]
+    SignatureExpired,
+
+    #[msg("Invalid Nonce")]
+    InvalidNonce,
+
+    #[msg("Invalid Timestamp.")]
+    InvalidTimestamp,
 }

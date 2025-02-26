@@ -11,6 +11,8 @@ pub struct SmartWallet {
     pub id: u64,
 
     pub bump: u8,
+
+    pub nonce: u64,
 }
 
 impl SmartWallet {
