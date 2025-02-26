@@ -113,8 +113,12 @@ await anchorProvider.connection.confirmTransaction(signature);
 #[account]
 pub struct SmartWallet {
     pub owner: [u8; 33],      // ECDSA compressed public key
-    pub authority: Pubkey,    // Program ID
-    pub state: u8,            // Account state
+    #[max_len(5)]
+    pub authority: Vec<[u8; 33]>, // Vec of another ECDSA public key
+
+    pub id: u64, // Unique identifier
+
+    pub bump: u8, // PDA bump seed
 }
 ```
 
@@ -122,7 +126,7 @@ pub struct SmartWallet {
 
 ```typescript
 const [smartWalletPda] = PublicKey.findProgramAddressSync(
-  [Buffer.from('smart-wallet'), publicKey.toBuffer()],
+  [Buffer.from('smart-wallet'), &id.to_le_bytes()],
   programId
 );
 ```
