@@ -26,7 +26,7 @@ pub mod contract {
     pub fn verify_and_execute_instruction<'info>(
         ctx: Context<Verify>,
         pubkey: [u8; 33],
-        msg: Vec<u8>,
+        msg: Message,
         sig: [u8; 64],
         data: Vec<u8>,
     ) -> Result<()> {

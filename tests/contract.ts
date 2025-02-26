@@ -1,14 +1,11 @@
 import * as anchor from '@coral-xyz/anchor';
-import { Program } from '@coral-xyz/anchor';
-import { Contract } from '../target/types/contract';
 import ECDSA from 'ecdsa-secp256r1';
 import { Keypair } from '@solana/web3.js';
 import dotenv from 'dotenv';
 import bs58 from 'bs58';
-import { createInitSmartWalletTransaction } from '../script/api/init';
-import { getSmartWalletPdaByCreator } from '../script/api/getSmartWalletPda';
-import { createVerifyAndExecuteTransaction } from '../script/api/verifyAndExecute';
+
 import { setup } from './raydium-swap/swap';
+import { SmartWalletContract } from '../sdk';
 dotenv.config();
 
 describe('contract', () => {
@@ -19,16 +16,16 @@ describe('contract', () => {
 
   const wallet = Keypair.fromSecretKey(bs58.decode(process.env.PRIVATE_KEY!));
 
+  const program = new SmartWalletContract(anchorProvider.connection);
+
   xit('Init smart-wallet', async () => {
     const privateKey = ECDSA.generateKey();
-
-     
 
     const publicKeyBase64 = privateKey.toCompressedPublicKey();
 
     const pubkey = Array.from(Buffer.from(publicKeyBase64, 'base64'));
 
-    const txn = await createInitSmartWalletTransaction({
+    const txn = await program.createInitSmartWalletTransaction({
       secp256k1PubkeyBytes: pubkey,
       connection: anchorProvider.connection,
       payer: wallet.publicKey,
@@ -46,7 +43,7 @@ describe('contract', () => {
     const pubkey = Buffer.from(publicKeyBase64, 'base64');
 
     await anchorProvider.sendAndConfirm(
-      await createInitSmartWalletTransaction({
+      await program.createInitSmartWalletTransaction({
         secp256k1PubkeyBytes: Array.from(pubkey),
         connection: anchorProvider.connection,
         payer: wallet.publicKey,
@@ -54,8 +51,7 @@ describe('contract', () => {
       [wallet]
     );
 
-    const smartWalletPubkey = await getSmartWalletPdaByCreator(
-      anchorProvider.connection,
+    const smartWalletPubkey = await program.getSmartWalletPdaByCreator(
       Array.from(pubkey)
     );
 
@@ -67,28 +63,25 @@ describe('contract', () => {
       anchorProvider,
     });
 
-    const message = `Hello mother fucker, it's me again`;
+    const { message, messageBytes } = await program.getMessage(
+      smartWalletPubkey
+    );
 
-    const messageBytes = Buffer.from(message);
-
-    const signatureBase64 = privateKey.sign(Buffer.from(message).toString());
+    const signatureBase64 = privateKey.sign(messageBytes.toString());
 
     let signature = Buffer.from(signatureBase64, 'base64');
 
-    const txn = await createVerifyAndExecuteTransaction({
+    const txn = await program.createVerifyAndExecuteTransaction({
       arbitraryInstruction: swapIns,
       pubkey: pubkey,
       signature: signature,
-      message: messageBytes,
+      message,
       connection: anchorProvider.connection,
       payer: wallet.publicKey,
       smartWalletPda: smartWalletPubkey,
     });
 
     txn.partialSign(wallet);
-
-    // sleep for 5 seconds
-    await new Promise((resolve) => setTimeout(resolve, 5000));
 
     const sig = await anchorProvider.connection.sendRawTransaction(
       txn.serialize()
